@@ -93,6 +93,7 @@ export class MarketEngine {
   private tickInterval: number | null = null;
   private minConfluenceThreshold: number = 80;
   private lastAlertMinute: Map<CurrencyPair, number> = new Map();
+  private safeModeActive: boolean = false;
 
   constructor() {
     this.initializePairs();
@@ -235,8 +236,8 @@ export class MarketEngine {
     const nextMinuteStart = currentMinuteStart + 60000;
     const secondsRemaining = Math.max(0, Math.floor((nextMinuteStart - now) / 1000));
 
-    // Handle audio tick warning at T-5s to T-1s
-    if (secondsRemaining <= 5 && secondsRemaining >= 1) {
+    // Handle audio tick warning at T-5s to T-1s (only when safe mode is not active)
+    if (!this.safeModeActive && secondsRemaining <= 5 && secondsRemaining >= 1) {
       soundEngine.playCountdownTick(secondsRemaining === 1);
     }
 
@@ -296,7 +297,7 @@ export class MarketEngine {
       // 2. SIGNAL PREDICTION TRIGGER WINDOW: Seconds 52 to 57 before next candle
       // In Quotex, binary options traders execute at 00:58 or 00:59 for entry on the 00:00 open
       const lastAlertedMin = this.lastAlertMinute.get(pair) || 0;
-      if (secondsRemaining <= 8 && secondsRemaining >= 3 && lastAlertedMin !== currentMinuteStart) {
+      if (!this.safeModeActive && secondsRemaining <= 8 && secondsRemaining >= 3 && lastAlertedMin !== currentMinuteStart) {
         // Run deep confluence analysis
         const analysis = analyze1MinuteMarket(candles);
         data.indicators = analysis.indicators;
@@ -426,6 +427,30 @@ export class MarketEngine {
 
   public getMinConfluence(): number {
     return this.minConfluenceThreshold;
+  }
+
+  public setSafeMode(active: boolean) {
+    this.safeModeActive = active;
+    if (active) {
+      // Disarm all active signals on every pair
+      for (const data of this.pairsData.values()) {
+        data.activeSignal = null;
+      }
+    }
+    this.notify();
+  }
+
+  public isSafeMode(): boolean {
+    return this.safeModeActive;
+  }
+
+  public clearSessionData() {
+    this.signalHistory = [];
+    for (const data of this.pairsData.values()) {
+      data.activeSignal = null;
+      data.totalSignalsTracked = 0;
+    }
+    this.notify();
   }
 }
 

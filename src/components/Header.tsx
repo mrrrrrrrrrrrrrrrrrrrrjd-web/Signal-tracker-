@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, BellOff, Volume2, VolumeX, ShieldCheck, Zap } from 'lucide-react';
+import { Bell, BellOff, Volume2, VolumeX, ShieldCheck, ShieldAlert, Zap } from 'lucide-react';
 import { soundEngine } from '../utils/audio';
 import { notificationService, NotificationPermissionState } from '../utils/notifications';
 
@@ -11,6 +11,8 @@ interface HeaderProps {
   notifState: NotificationPermissionState;
   onRequestNotif: () => void;
   onOpenSettings: () => void;
+  isSafeMode: boolean;
+  onOpenSafeExit: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,6 +23,8 @@ export const Header: React.FC<HeaderProps> = ({
   notifState,
   onRequestNotif,
   onOpenSettings,
+  isSafeMode,
+  onOpenSafeExit,
 }) => {
   const toggleSound = () => {
     const next = !soundEnabled;
@@ -121,6 +125,20 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Enable Push Alerts</span>
             </button>
           )}
+
+          {/* Exit Safe Button */}
+          <button
+            onClick={onOpenSafeExit}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors whitespace-nowrap shadow-sm ${
+              isSafeMode
+                ? 'bg-rose-950/80 text-rose-300 border-rose-600 hover:bg-rose-900/70'
+                : 'bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20 hover:text-rose-300'
+            }`}
+            title="Safe Exit & Capital Protection"
+          >
+            <ShieldAlert className="w-3.5 h-3.5" />
+            <span>{isSafeMode ? 'Safe Exit: On' : 'Exit Safe'}</span>
+          </button>
         </div>
       </div>
     </header>

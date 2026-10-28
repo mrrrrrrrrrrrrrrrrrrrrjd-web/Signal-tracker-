@@ -626,3 +626,99 @@ export function analyze1MinuteMarket(candles: Candle[]): {
     probability,
   };
 }
+
+export interface VolatilityMetrics {
+  atr14: number;
+  atrPercent: number; // ATR as % of current price
+  volatilityScore: number; // 0 to 100 normalized
+  volatilityLevel: 'ULTRA' | 'HIGH' | 'MODERATE' | 'LOW';
+  range1M: number;
+  range5M: number;
+  range15M: number;
+  tickIntensity: number;
+  binaryOptionsSuitability: 'OPTIMAL' | 'GOOD' | 'CAUTION' | 'STAGNANT';
+}
+
+export function calculateVolatilityMetrics(candles: Candle[], decimals: number): VolatilityMetrics {
+  const n = candles.length;
+  if (n < 2) {
+    return {
+      atr14: 0,
+      atrPercent: 0,
+      volatilityScore: 50,
+      volatilityLevel: 'MODERATE',
+      range1M: 0,
+      range5M: 0,
+      range15M: 0,
+      tickIntensity: 50,
+      binaryOptionsSuitability: 'GOOD',
+    };
+  }
+
+  // True Ranges
+  const trs: number[] = [];
+  for (let i = 1; i < n; i++) {
+    const curr = candles[i];
+    const prev = candles[i - 1];
+    const tr = Math.max(
+      curr.high - curr.low,
+      Math.abs(curr.high - prev.close),
+      Math.abs(curr.low - prev.close)
+    );
+    trs.push(tr);
+  }
+
+  const period = Math.min(14, trs.length);
+  const recentTRs = trs.slice(-period);
+  const atr14 = recentTRs.reduce((a, b) => a + b, 0) / period;
+
+  const currentPrice = candles[n - 1].close;
+  const atrPercent = currentPrice > 0 ? (atr14 / currentPrice) * 100 : 0;
+
+  const currCandle = candles[n - 1];
+  const range1M = currCandle.high - currCandle.low;
+
+  const last5 = candles.slice(-5);
+  const range5M = last5.reduce((acc, c) => acc + (c.high - c.low), 0) / last5.length;
+
+  const last15 = candles.slice(-15);
+  const max15 = Math.max(...last15.map((c) => c.high));
+  const min15 = Math.min(...last15.map((c) => c.low));
+  const range15M = max15 - min15;
+
+  const avgVol = last5.reduce((sum, c) => sum + c.volume, 0) / last5.length;
+  const tickIntensity = Math.min(100, Math.round((currCandle.volume / Math.max(1, avgVol)) * 50 + 25));
+
+  // Score normalized across asset classes
+  let score = Math.round((atrPercent / 0.055) * 50 + (range1M / (range5M || 0.0001)) * 25);
+  score = Math.max(12, Math.min(99, score));
+
+  let volatilityLevel: VolatilityMetrics['volatilityLevel'] = 'MODERATE';
+  let binaryOptionsSuitability: VolatilityMetrics['binaryOptionsSuitability'] = 'GOOD';
+
+  if (score >= 80) {
+    volatilityLevel = 'ULTRA';
+    binaryOptionsSuitability = 'OPTIMAL';
+  } else if (score >= 62) {
+    volatilityLevel = 'HIGH';
+    binaryOptionsSuitability = 'OPTIMAL';
+  } else if (score >= 40) {
+    volatilityLevel = 'MODERATE';
+    binaryOptionsSuitability = 'GOOD';
+  } else {
+    volatilityLevel = 'LOW';
+    binaryOptionsSuitability = 'CAUTION';
+  }
+
+  return {
+    atr14,
+    atrPercent,
+    volatilityScore: score,
+    volatilityLevel,
+    range1M,
+    range5M,
+    range15M,
+    tickIntensity,
+    binaryOptionsSuitability,
+  };
+}
