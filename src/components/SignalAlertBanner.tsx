@@ -248,7 +248,7 @@ export const SignalAlertBanner: React.FC<SignalAlertBannerProps> = ({
         <div className="flex items-center gap-3 font-mono">
           <span>Target Accuracy: <strong className="text-emerald-400">88% - 94%</strong></span>
           <span>·</span>
-          <span>Martingale: <strong className="text-neutral-200">Max 1 Step (G1)</strong></span>
+          <span>Martingale: <strong className="text-emerald-400">Max 1 Step (G1)</strong></span>
         </div>
       </div>
     </div>

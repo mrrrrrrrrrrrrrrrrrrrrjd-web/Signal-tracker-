@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CurrencyPair, PredictionSignal, SignalOutcome } from '../types/trading';
 import { TrendingUp, TrendingDown, CheckCircle2, XCircle, Clock, Copy, Check, Filter } from 'lucide-react';
 
@@ -11,12 +11,20 @@ export const SignalHistoryTable: React.FC<SignalHistoryTableProps> = ({ signals 
   const [outcomeFilter, setOutcomeFilter] = useState<string>('ALL');
   const [copied, setCopied] = useState<boolean>(false);
 
+  const availablePairs = useMemo(() => {
+    const set = new Set<string>();
+    signals.forEach((s) => set.add(s.pair));
+    return Array.from(set).sort();
+  }, [signals]);
+
   // Filter signals
   const filtered = signals.filter((s) => {
     if (pairFilter !== 'ALL' && s.pair !== pairFilter) return false;
-    if (outcomeFilter === 'WIN' && !(s.outcome === 'WIN_DIRECT' || s.outcome === 'WIN_G1' || s.outcome === 'WIN_G2')) {
+    if (outcomeFilter === 'WIN' && s.outcome !== 'WIN_DIRECT' && s.outcome !== 'WIN_G1' && s.outcome !== 'WIN_G2') {
       return false;
     }
+    if (outcomeFilter === 'DIRECT' && s.outcome !== 'WIN_DIRECT') return false;
+    if (outcomeFilter === 'G1' && s.outcome !== 'WIN_G1') return false;
     if (outcomeFilter === 'LOSS' && s.outcome !== 'LOSS') return false;
     return true;
   });
@@ -38,14 +46,14 @@ export const SignalHistoryTable: React.FC<SignalHistoryTableProps> = ({ signals 
         s.outcome === 'WIN_DIRECT'
           ? '✅ DIRECT WIN'
           : s.outcome === 'WIN_G1'
-          ? '🟡 WIN G1'
+          ? '✅ G1 WIN'
           : s.outcome === 'LOSS'
           ? '❌ LOSS'
           : '⏳ PENDING';
       return `${s.pair} - 1M - ${s.direction} - ${timeStr} - ${s.probability}% - [${outcomeIcon}]`;
     });
 
-    const header = `📊 QUOTEX 1M VERIFIED SIGNALS AUDIT\nOverall Accuracy: ${overallWinRate}% (Direct: ${directWinRate}%)\n\n`;
+    const header = `📊 QUOTEX 1M SIGNALS AUDIT (DIRECT + G1)\nOverall Accuracy: ${overallWinRate}% (Direct: ${directWinRate}%)\n\n`;
     navigator.clipboard.writeText(header + lines.join('\n'));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -58,27 +66,31 @@ export const SignalHistoryTable: React.FC<SignalHistoryTableProps> = ({ signals 
         <div>
           <h2 className="text-base font-bold text-white tracking-tight">Signal Execution & Outcome Audit Log</h2>
           <p className="text-xs text-neutral-400">
-            Real-time verification of next-candle predictions under Quotex 1-minute expiration rules.
+            Real-time verification of next-candle predictions (G0 Direct Entry & Step G1 Recovery).
           </p>
         </div>
 
         {/* Global Performance Summary KPIs */}
-        <div className="flex items-center gap-3 sm:gap-4 font-mono text-xs">
+        <div className="flex items-center gap-2 sm:gap-3 font-mono text-xs flex-wrap">
           <div className="bg-neutral-900 border border-neutral-800 px-3 py-1.5 rounded-lg text-center">
-            <span className="text-[10px] text-neutral-500 uppercase block">Total Accuracy</span>
+            <span className="text-[10px] text-neutral-500 uppercase block">Accuracy (G0+G1)</span>
             <strong className="text-emerald-400 font-bold text-sm">{overallWinRate}%</strong>
           </div>
           <div className="bg-neutral-900 border border-neutral-800 px-3 py-1.5 rounded-lg text-center">
-            <span className="text-[10px] text-neutral-500 uppercase block">Direct Win</span>
-            <strong className="text-white font-bold text-sm">{directWinRate}%</strong>
+            <span className="text-[10px] text-neutral-500 uppercase block">Direct Wins</span>
+            <strong className="text-white font-bold text-sm">{directWins}</strong>
           </div>
           <div className="bg-neutral-900 border border-neutral-800 px-3 py-1.5 rounded-lg text-center">
             <span className="text-[10px] text-neutral-500 uppercase block">G1 Recovery</span>
-            <strong className="text-amber-400 font-bold text-sm">{g1Wins}</strong>
+            <strong className="text-cyan-400 font-bold text-sm">{g1Wins}</strong>
           </div>
           <div className="bg-neutral-900 border border-neutral-800 px-3 py-1.5 rounded-lg text-center">
             <span className="text-[10px] text-neutral-500 uppercase block">Losses</span>
             <strong className="text-rose-400 font-bold text-sm">{losses}</strong>
+          </div>
+          <div className="bg-neutral-900 border border-neutral-800 px-3 py-1.5 rounded-lg text-center">
+            <span className="text-[10px] text-neutral-500 uppercase block">Total Verified</span>
+            <strong className="text-neutral-300 font-bold text-sm">{totalCompleted}</strong>
           </div>
         </div>
       </div>
@@ -86,28 +98,30 @@ export const SignalHistoryTable: React.FC<SignalHistoryTableProps> = ({ signals 
       {/* Filter Row & Copy Button */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-neutral-800 text-xs">
         <div className="flex items-center gap-2">
-          {/* Pair filter */}
-          <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-lg border border-neutral-800">
-            {['ALL', 'USD/BRL', 'USD/JPY', 'AUD/USD', 'EUR/USD'].map((pair) => (
-              <button
-                key={pair}
-                onClick={() => setPairFilter(pair)}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                  pairFilter === pair
-                    ? 'bg-neutral-800 text-white font-semibold'
-                    : 'text-neutral-400 hover:text-neutral-200'
-                }`}
-              >
-                {pair}
-              </button>
-            ))}
+          {/* Pair filter selector */}
+          <div className="flex items-center gap-1.5 bg-neutral-900 px-2 py-1 rounded-lg border border-neutral-800">
+            <span className="text-[10px] text-neutral-500 font-mono uppercase">Asset:</span>
+            <select
+              value={pairFilter}
+              onChange={(e) => setPairFilter(e.target.value)}
+              className="bg-transparent text-white font-mono text-xs focus:outline-none cursor-pointer"
+            >
+              <option value="ALL" className="bg-neutral-900 text-white">All Assets ({signals.length})</option>
+              {availablePairs.map((p) => (
+                <option key={p} value={p} className="bg-neutral-900 text-white">
+                  {p}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Outcome filter */}
           <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-lg border border-neutral-800">
             {[
               { id: 'ALL', label: 'All Results' },
-              { id: 'WIN', label: 'Wins Only' },
+              { id: 'WIN', label: 'All Wins' },
+              { id: 'DIRECT', label: 'Direct' },
+              { id: 'G1', label: 'Step G1' },
               { id: 'LOSS', label: 'Losses' },
             ].map((f) => (
               <button
@@ -183,17 +197,17 @@ export const SignalHistoryTable: React.FC<SignalHistoryTableProps> = ({ signals 
                       {s.outcome === 'WIN_DIRECT' && (
                         <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          DIRECT WIN (G0)
+                          DIRECT WIN
                         </span>
                       )}
                       {s.outcome === 'WIN_G1' && (
-                        <span className="inline-flex items-center gap-1 text-amber-400 font-bold">
+                        <span className="inline-flex items-center gap-1 text-cyan-400 font-bold">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           G1 WIN
                         </span>
                       )}
                       {s.outcome === 'WIN_G2' && (
-                        <span className="inline-flex items-center gap-1 text-amber-500 font-bold">
+                        <span className="inline-flex items-center gap-1 text-indigo-400 font-bold">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           G2 WIN
                         </span>

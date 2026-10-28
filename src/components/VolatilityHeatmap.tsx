@@ -28,6 +28,7 @@ export const VolatilityHeatmap: React.FC<VolatilityHeatmapProps> = ({
   className = '',
 }) => {
   const [sortBy, setSortBy] = useState<'volatility' | 'payout' | 'range'>('volatility');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Compute volatility metrics for all pairs
   const volatilityList: PairVolatilityItem[] = useMemo(() => {
@@ -46,9 +47,19 @@ export const VolatilityHeatmap: React.FC<VolatilityHeatmapProps> = ({
     });
   }, [pairsData]);
 
-  // Sort list
+  // Sort and filter list
   const sortedList = useMemo(() => {
-    return [...volatilityList].sort((a, b) => {
+    const q = searchQuery.trim().toLowerCase();
+    const filtered = volatilityList.filter((item) => {
+      if (!q) return true;
+      return (
+        item.pair.toLowerCase().includes(q) ||
+        item.displayName.toLowerCase().includes(q) ||
+        `${item.payoutPercent}%`.includes(q)
+      );
+    });
+
+    return filtered.sort((a, b) => {
       if (sortBy === 'volatility') {
         return b.metrics.volatilityScore - a.metrics.volatilityScore;
       }
@@ -57,7 +68,7 @@ export const VolatilityHeatmap: React.FC<VolatilityHeatmapProps> = ({
       }
       return b.metrics.range1M - a.metrics.range1M;
     });
-  }, [volatilityList, sortBy]);
+  }, [volatilityList, sortBy, searchQuery]);
 
   // Identify most volatile / optimal pair for binary options
   const topActivePair = sortedList[0];
@@ -125,39 +136,61 @@ export const VolatilityHeatmap: React.FC<VolatilityHeatmapProps> = ({
           </div>
         </div>
 
-        {/* Sort Controls */}
-        <div className="flex items-center gap-1.5 bg-neutral-900 p-1 rounded-lg border border-neutral-800 text-xs font-medium">
-          <span className="text-[10px] text-neutral-500 uppercase px-1.5 font-mono">Sort:</span>
-          <button
-            onClick={() => setSortBy('volatility')}
-            className={`px-2 py-1 rounded text-xs transition-colors ${
-              sortBy === 'volatility'
-                ? 'bg-neutral-800 text-white font-semibold shadow-sm'
-                : 'text-neutral-400 hover:text-neutral-200'
-            }`}
-          >
-            Volatility Score
-          </button>
-          <button
-            onClick={() => setSortBy('payout')}
-            className={`px-2 py-1 rounded text-xs transition-colors ${
-              sortBy === 'payout'
-                ? 'bg-neutral-800 text-white font-semibold shadow-sm'
-                : 'text-neutral-400 hover:text-neutral-200'
-            }`}
-          >
-            Quotex Payout %
-          </button>
-          <button
-            onClick={() => setSortBy('range')}
-            className={`px-2 py-1 rounded text-xs transition-colors ${
-              sortBy === 'range'
-                ? 'bg-neutral-800 text-white font-semibold shadow-sm'
-                : 'text-neutral-400 hover:text-neutral-200'
-            }`}
-          >
-            1M Range
-          </button>
+        {/* Controls: Search & Sort */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Search Box */}
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search pairs..."
+              className="bg-neutral-900 border border-neutral-800 rounded-lg px-2.5 py-1 text-xs text-white placeholder-neutral-500 font-mono focus:outline-none focus:border-amber-500 w-32 sm:w-40"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1 text-neutral-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Sort Controls */}
+          <div className="flex items-center gap-1.5 bg-neutral-900 p-1 rounded-lg border border-neutral-800 text-xs font-medium">
+            <span className="text-[10px] text-neutral-500 uppercase px-1.5 font-mono">Sort:</span>
+            <button
+              onClick={() => setSortBy('volatility')}
+              className={`px-2 py-1 rounded text-xs transition-colors ${
+                sortBy === 'volatility'
+                  ? 'bg-neutral-800 text-white font-semibold shadow-sm'
+                  : 'text-neutral-400 hover:text-neutral-200'
+              }`}
+            >
+              Volatility
+            </button>
+            <button
+              onClick={() => setSortBy('payout')}
+              className={`px-2 py-1 rounded text-xs transition-colors ${
+                sortBy === 'payout'
+                  ? 'bg-neutral-800 text-white font-semibold shadow-sm'
+                  : 'text-neutral-400 hover:text-neutral-200'
+              }`}
+            >
+              Payout %
+            </button>
+            <button
+              onClick={() => setSortBy('range')}
+              className={`px-2 py-1 rounded text-xs transition-colors ${
+                sortBy === 'range'
+                  ? 'bg-neutral-800 text-white font-semibold shadow-sm'
+                  : 'text-neutral-400 hover:text-neutral-200'
+              }`}
+            >
+              Range
+            </button>
+          </div>
         </div>
       </div>
 

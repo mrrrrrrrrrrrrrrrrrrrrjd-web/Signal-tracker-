@@ -92,12 +92,12 @@ export const SafeExitModal: React.FC<SafeExitModalProps> = ({
               <strong className="text-white text-sm">{totalSignalsTracked}</strong>
             </div>
             <div className="bg-neutral-950/80 p-2 rounded-lg border border-neutral-800">
-              <span className="text-[10px] text-neutral-500 block">Total Win Rate</span>
-              <strong className="text-emerald-400 text-sm">{overallWinRate}%</strong>
+              <span className="text-[10px] text-neutral-500 block">Direct / G1</span>
+              <strong className="text-emerald-400 text-sm">{directWinRate}% / {overallWinRate}%</strong>
             </div>
             <div className="bg-neutral-950/80 p-2 rounded-lg border border-neutral-800">
-              <span className="text-[10px] text-neutral-500 block">Direct Win</span>
-              <strong className="text-amber-400 text-sm">{directWinRate}%</strong>
+              <span className="text-[10px] text-neutral-500 block">Strategy</span>
+              <strong className="text-cyan-300 text-sm">Direct + G1</strong>
             </div>
           </div>
         </div>

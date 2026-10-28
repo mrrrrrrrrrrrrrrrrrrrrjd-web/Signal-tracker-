@@ -1,4 +1,28 @@
-export type CurrencyPair = 'USD/BRL' | 'USD/JPY' | 'AUD/USD' | 'EUR/USD';
+export type CurrencyPair =
+  | 'USD/BRL'
+  | 'USD/JPY'
+  | 'AUD/USD'
+  | 'EUR/USD'
+  | 'EUR/USD (OTC)'
+  | 'USD/INR (OTC)'
+  | 'USD/PKR (OTC)'
+  | 'USD/TRY (OTC)'
+  | 'USD/EGP (OTC)'
+  | 'USD/IDR (OTC)'
+  | 'GBP/USD (OTC)'
+  | 'USD/BDT (OTC)'
+  | 'GBP/USD'
+  | 'USD/CAD'
+  | 'EUR/JPY'
+  | 'GBP/JPY'
+  | 'AUD/JPY'
+  | 'NZD/USD'
+  | 'USD/CHF'
+  | 'EUR/GBP'
+  | 'BTC/USD'
+  | 'XAU/USD';
+
+export type AssetCategory = 'OTC' | 'FOREX' | 'CROSS' | 'CRYPTO' | 'COMMODITY';
 
 export type SignalDirection = 'CALL' | 'PUT';
 
