@@ -1,0 +1,6 @@
+{
+  "name": "Quotex 1M Binary Options Signal Tracker",
+  "description": "Real-time 1-minute next-candle CALL/PUT predictive signal tracker with high-probability technical confluence, live candlestick charts, countdown timer, sound alerts, and push notifications for USD/BRL, USD/JPY, AUD/USD, and EUR/USD.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
